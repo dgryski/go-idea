@@ -43,7 +43,9 @@ func TestEncryptDecrypt(t *testing.T) {
 
 		var dst [8]byte
 
-		IdeaEncrypt(dst[:], p, k)
+		cipher, _ := NewCipher(k)
+
+		cipher.Encrypt(dst[:], p)
 
 		if !bytes.Equal(dst[:], c) {
 			t.Errorf("encrypt failed: got % 2x wanted % 2x\n", dst, c)
@@ -51,7 +53,7 @@ func TestEncryptDecrypt(t *testing.T) {
 
 		var plain [8]byte
 
-		IdeaDecrypt(plain[:], dst[:], k)
+		cipher.Decrypt(plain[:], dst[:])
 
 		if !bytes.Equal(plain[:], p) {
 			t.Errorf("decrypt failed: got % 2x wanted % 2x\n", plain, p)

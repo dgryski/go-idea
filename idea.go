@@ -3,12 +3,48 @@
 package idea
 
 import (
+	"crypto/cipher"
 	"encoding/binary"
+	"strconv"
 )
 
-const IDEAKEYSIZE = 16
 const IDEAROUNDS = 8
 const IDEAKEYLEN = (6*IDEAROUNDS + 4)
+
+type KeySizeError int
+
+func (k KeySizeError) Error() string {
+	return "idea: invalid key size " + strconv.Itoa(int(k))
+}
+
+type ideaCipher struct {
+	ek [IDEAKEYLEN]uint16
+	dk [IDEAKEYLEN]uint16
+}
+
+func NewCipher(key []byte) (cipher.Block, error) {
+
+	if l := len(key); l != 16 {
+		return nil, KeySizeError(l)
+	}
+
+	cipher := &ideaCipher{}
+
+	expandKey(key, cipher.ek[:])
+	invertKey(cipher.ek[:], cipher.dk[:])
+
+	return cipher, nil
+}
+
+func (c *ideaCipher) BlockSize() int { return 16 }
+
+func (c *ideaCipher) Encrypt(dst, src []byte) {
+	crypt(src, dst, c.ek[:])
+}
+
+func (c *ideaCipher) Decrypt(dst, src []byte) {
+	crypt(src, dst, c.dk[:])
+}
 
 func mulInv(x uint16) (ret uint16) {
 
@@ -61,16 +97,12 @@ func mul(x, y uint16) (ret uint16) {
 	return x
 }
 
-/*
- * Expand a 128-bit user key to a working encryption key EK
- */
-
-func ideaExpandKey(userKey []byte, EK []uint16) {
+func expandKey(key []byte, EK []uint16) {
 	var i, j int
 
 	for j = 0; j < 8; j++ {
-		EK[j] = (uint16(userKey[0]) << 8) + uint16(userKey[1])
-		userKey = userKey[2:]
+		EK[j] = (uint16(key[0]) << 8) + uint16(key[1])
+		key = key[2:]
 	}
 	for i = 0; j < IDEAKEYLEN; j++ {
 		i++
@@ -80,7 +112,7 @@ func ideaExpandKey(userKey []byte, EK []uint16) {
 	}
 }
 
-func ideaInvertKey(EK []uint16, DK []uint16) {
+func invertKey(EK []uint16, DK []uint16) {
 
 	var t1, t2, t3 uint16
 	var p [IDEAKEYLEN]uint16
@@ -156,7 +188,7 @@ func ideaInvertKey(EK []uint16, DK []uint16) {
 	copy(DK, p[:])
 }
 
-func ideaCipher(inbuf, outbuf []byte, key []uint16) {
+func crypt(inbuf, outbuf []byte, key []uint16) {
 
 	var x1, x2, x3, x4, s2, s3 uint16
 
@@ -210,18 +242,4 @@ func ideaCipher(inbuf, outbuf []byte, key []uint16) {
 	binary.BigEndian.PutUint16(outbuf[4:], x2)
 	binary.BigEndian.PutUint16(outbuf[6:], x4)
 
-} /* ideaCipher */
-
-func IdeaEncrypt(dst, src, key []byte) {
-	ek := make([]uint16, IDEAKEYLEN)
-	ideaExpandKey(key, ek)
-	ideaCipher(src, dst, ek)
-}
-
-func IdeaDecrypt(dst, src, key []byte) {
-	ek := make([]uint16, IDEAKEYLEN)
-	dk := make([]uint16, IDEAKEYLEN)
-	ideaExpandKey(key, ek)
-	ideaInvertKey(ek, dk)
-	ideaCipher(src, dst, dk)
 }
