@@ -75,26 +75,23 @@ func mulInv(x uint16) (ret uint16) {
 func mul(x, y uint16) (ret uint16) {
 
 	t16 := y
-	if t16 != 0 {
-
-		if x != 0 {
-			t32 := uint32(x) * uint32(t16)
-			x = uint16(t32)
-			t16 = uint16(t32 >> 16)
-
-			if x < t16 {
-				x = (x - t16) + 1
-			} else {
-				x = (x - t16)
-			}
-		} else {
-			x = 1 - t16
-		}
-	} else {
+	if t16 == 0 {
 		x = 1 - x
 	}
 
-	return x
+	if x == 0 {
+		x = 1 - t16
+	}
+
+	t32 := uint32(x) * uint32(t16)
+	x = uint16(t32)
+	t16 = uint16(t32 >> 16)
+
+	if x < t16 {
+		return (x - t16) + 1
+	}
+
+	return (x - t16)
 }
 
 func expandKey(key []byte, EK []uint16) {
