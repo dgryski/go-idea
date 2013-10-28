@@ -8,8 +8,8 @@ import (
 	"strconv"
 )
 
-const IDEAROUNDS = 8
-const IDEAKEYLEN = (6*IDEAROUNDS + 4)
+const rounds = 8
+const keyLen = (6*rounds + 4)
 
 type KeySizeError int
 
@@ -18,8 +18,8 @@ func (k KeySizeError) Error() string {
 }
 
 type ideaCipher struct {
-	ek [IDEAKEYLEN]uint16
-	dk [IDEAKEYLEN]uint16
+	ek [keyLen]uint16
+	dk [keyLen]uint16
 }
 
 func NewCipher(key []byte) (cipher.Block, error) {
@@ -101,7 +101,7 @@ func expandKey(key []byte, EK []uint16) {
 		EK[j] = (uint16(key[0]) << 8) + uint16(key[1])
 		key = key[2:]
 	}
-	for i = 0; j < IDEAKEYLEN; j++ {
+	for i = 0; j < keyLen; j++ {
 		i++
 		EK[i+7] = EK[i&7]<<9 | EK[(i+1)&7]>>7
 		EK = EK[i&8:]
@@ -109,11 +109,12 @@ func expandKey(key []byte, EK []uint16) {
 	}
 }
 
+// invertKey computes the decryption round-keys from a set of encryption round-keys
 func invertKey(EK []uint16, DK []uint16) {
 
 	var t1, t2, t3 uint16
-	var p [IDEAKEYLEN]uint16
-	pidx := IDEAKEYLEN
+	var p [keyLen]uint16
+	pidx := keyLen
 	ekidx := 0
 
 	t1 = mulInv(EK[ekidx])
@@ -132,7 +133,7 @@ func invertKey(EK []uint16, DK []uint16) {
 	pidx--
 	p[pidx] = t1
 
-	for i := 0; i < IDEAROUNDS-1; i++ {
+	for i := 0; i < rounds-1; i++ {
 		t1 = EK[ekidx]
 		ekidx++
 		pidx--
@@ -194,7 +195,7 @@ func crypt(inbuf, outbuf []byte, key []uint16) {
 	x3 = binary.BigEndian.Uint16(inbuf[4:])
 	x4 = binary.BigEndian.Uint16(inbuf[6:])
 
-	for r := IDEAROUNDS; r > 0; r-- {
+	for r := rounds; r > 0; r-- {
 
 		x1 = mul(x1, key[0])
 		key = key[1:]
