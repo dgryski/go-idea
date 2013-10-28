@@ -1,5 +1,9 @@
-// Package idea implements the IDEA cipher
-// Derived from Public Domain code by Colin Plumb
+// Package idea implements the IDEA block cipher
+/*
+For more information, please see https://en.wikipedia.org/wiki/International_Data_Encryption_Algorithm
+
+This implementation derived from Public Domain code by Colin Plumb available at https://www.schneier.com/book-applied-source.html
+*/
 package idea
 
 import (
@@ -22,6 +26,7 @@ type ideaCipher struct {
 	dk [keyLen]uint16
 }
 
+// NewCipher returns a cipher.Block implementing the IDEA block cipher.  The key argument should be 16 bytes.
 func NewCipher(key []byte) (cipher.Block, error) {
 
 	if l := len(key); l != 16 {
@@ -31,33 +36,34 @@ func NewCipher(key []byte) (cipher.Block, error) {
 	cipher := &ideaCipher{}
 
 	expandKey(key, cipher.ek[:])
+
+	// key inversion is expensive, we could do this lazily
 	invertKey(cipher.ek[:], cipher.dk[:])
 
 	return cipher, nil
 }
 
-func (c *ideaCipher) BlockSize() int { return 16 }
+func (c *ideaCipher) BlockSize() int          { return 16 }
+func (c *ideaCipher) Encrypt(dst, src []byte) { crypt(src, dst, c.ek[:]) }
+func (c *ideaCipher) Decrypt(dst, src []byte) { crypt(src, dst, c.dk[:]) }
 
-func (c *ideaCipher) Encrypt(dst, src []byte) {
-	crypt(src, dst, c.ek[:])
-}
-
-func (c *ideaCipher) Decrypt(dst, src []byte) {
-	crypt(src, dst, c.dk[:])
-}
-
+// mulInv computes the multiplicative inverse of x mod 2^16+1
 func mulInv(x uint16) (ret uint16) {
 
 	if x <= 1 {
 		return x // 0 and 1 are self-inverse
 	}
+
 	t1 := uint16(0x10001 / uint32(x)) // Since x >= 2, this fits into 16 bits
 	y := uint16(0x10001 % uint32(x))
+
 	if y == 1 {
 		return (1 - t1)
 	}
+
 	t0 := uint16(1)
 	var q uint16
+
 	for y != 1 {
 		q = x / y
 		x = x % y
@@ -72,7 +78,8 @@ func mulInv(x uint16) (ret uint16) {
 	return uint16(1 - t1)
 }
 
-func mul(x, y uint16) (ret uint16) {
+// mul computes x*y mod 2^16+1
+func mul(x, y uint16) uint16 {
 
 	t16 := y
 	if t16 == 0 {
@@ -94,6 +101,7 @@ func mul(x, y uint16) (ret uint16) {
 	return (x - t16)
 }
 
+// expandKey computes encryption round-keys from a user-supplied key
 func expandKey(key []byte, EK []uint16) {
 	var i, j int
 
@@ -186,6 +194,7 @@ func invertKey(EK []uint16, DK []uint16) {
 	copy(DK, p[:])
 }
 
+// crypt performs IDEA encryption given input/output buffers and a set of round-keys
 func crypt(inbuf, outbuf []byte, key []uint16) {
 
 	var x1, x2, x3, x4, s2, s3 uint16
@@ -239,5 +248,4 @@ func crypt(inbuf, outbuf []byte, key []uint16) {
 	binary.BigEndian.PutUint16(outbuf[2:], x3)
 	binary.BigEndian.PutUint16(outbuf[4:], x2)
 	binary.BigEndian.PutUint16(outbuf[6:], x4)
-
 }
