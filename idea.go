@@ -43,7 +43,7 @@ func NewCipher(key []byte) (cipher.Block, error) {
 	return cipher, nil
 }
 
-func (c *ideaCipher) BlockSize() int          { return 16 }
+func (c *ideaCipher) BlockSize() int          { return 8 }
 func (c *ideaCipher) Encrypt(dst, src []byte) { crypt(src, dst, c.ek[:]) }
 func (c *ideaCipher) Decrypt(dst, src []byte) { crypt(src, dst, c.dk[:]) }
 
