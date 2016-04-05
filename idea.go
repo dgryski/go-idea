@@ -81,24 +81,23 @@ func mulInv(x uint16) (ret uint16) {
 // mul computes x*y mod 2^16+1
 func mul(x, y uint16) uint16 {
 
-	t16 := y
-	if t16 == 0 {
+	if y == 0 {
 		return 1 - x
 	}
 
 	if x == 0 {
-		return 1 - t16
+		return 1 - y
 	}
 
-	t32 := uint32(x) * uint32(t16)
+	t32 := uint32(x) * uint32(y)
 	x = uint16(t32)
-	t16 = uint16(t32 >> 16)
+	y = uint16(t32 >> 16)
 
-	if x < t16 {
-		return (x - t16) + 1
+	if x < y {
+		return x - y + 1
 	}
 
-	return (x - t16)
+	return x - y
 }
 
 // expandKey computes encryption round-keys from a user-supplied key
