@@ -83,11 +83,11 @@ func mul(x, y uint16) uint16 {
 
 	t16 := y
 	if t16 == 0 {
-		x = 1 - x
+		return 1 - x
 	}
 
 	if x == 0 {
-		x = 1 - t16
+		return 1 - t16
 	}
 
 	t32 := uint32(x) * uint32(t16)
