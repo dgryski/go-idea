@@ -15,6 +15,7 @@ import (
 const rounds = 8
 const keyLen = (6*rounds + 4)
 
+// KeySizeError is returned for incorrect key sizes
 type KeySizeError int
 
 func (k KeySizeError) Error() string {
@@ -58,10 +59,10 @@ func mulInv(x uint16) (ret uint16) {
 	y := uint16(0x10001 % uint32(x))
 
 	if y == 1 {
-		return (1 - t1)
+		return 1 - t1
 	}
 
-	t0 := uint16(1)
+	var t0 uint16 = 1
 	var q uint16
 
 	for y != 1 {
@@ -75,7 +76,7 @@ func mulInv(x uint16) (ret uint16) {
 		y = y % x
 		t1 += q * t0
 	}
-	return uint16(1 - t1)
+	return 1 - t1
 }
 
 // mul computes x*y mod 2^16+1
@@ -182,7 +183,6 @@ func invertKey(EK []uint16, DK []uint16) {
 	ekidx++
 	pidx--
 	p[pidx] = mulInv(EK[ekidx])
-	ekidx++
 	pidx--
 	p[pidx] = t3
 	pidx--
